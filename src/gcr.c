@@ -11,6 +11,20 @@ int err(char* str) {
   sprintf(strFin, "%s\n", str);
   fprintf(stderr, strFin);
   return 1;
+} 
+
+
+int strArrLen(char* arr[]) {
+  if (arr == NULL) {
+    return 0;
+  }
+
+  int chk = 0;
+  while (arr[chk] != NULL) {
+    chk++;
+  }
+
+  return chk;
 }
 
 bool intArrContains(int arr[], int size, int target) {
@@ -101,33 +115,116 @@ int comp(char* file, char *tmp) {
 
 int main(int argc, char *argv[]) {
   srand(time(NULL));
+
   if (argc < 2) {
-    return err("not enough args");
+    help();
+    return err("\nnot enough args");
   }
 
   bool run = false;
   char *file = NULL;
-  char *args[] = {"gcc"};
-  int taken[] = {1};
-  for (int i = 0; i < argc; i++) {
-    int M = sizeof(taken) / sizeof(taken[0]);
+  int argCap = 4;
+  char **args = (char **)malloc(sizeof(char *) * argCap);
+  if (args == NULL) {
+    return err("args malloc failed");
+  }
+
+  int argCount = 0;
+  args[argCount++] = strdup("tmp");
+  if (args == NULL) {
+    free(args);
+    return err("strdup failed on tmp arg");
+  }
+
+  int takCap = 4;
+  int *taken = (int *)malloc(sizeof(int) * takCap);
+  if (taken == NULL) {
+    free(args[0]);
+    free(args);
+    free(taken);
+    return err("taken args failed on malloc");
+  }
+  int takCount = 0;
+  for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "run") == 0) {
-      if (!run && !intArrContains(taken, M, i+1)) {
+      if (i +1 < argc && argv[i+1] != NULL) {
+        if (!run && !intArrContains(taken, takCount, i+1)) {
+          run = true;
+        }
+        if (takCount == takCap) {
+          takCap *= 2;
+          int *newTak = (int *)realloc(taken, sizeof(int) * takCap);
+          if (newTak == NULL) {
+            return err("realloc taken args failed");
+          }
+          taken = newTak;
+        }
+        taken[takCount++] = i;
+        file = argv[i+1];
+
+        if (takCount == takCap) {
+          takCap *= 2;
+          int *newTak = (int *)realloc(taken, sizeof(int) * takCap);
+          if (newTak == NULL) {
+            return err("realloc taken args failed");
+          }
+          taken[takCount++] = i+1;
+        } else if (!run && !intArrContains(taken, takCount, i)) {
+          run = true;
+          if (takCount == takCap) {
+            takCap *= 2;
+            int *newTak = (int *)realloc(taken, sizeof(int) * takCap);
+            if (newTak == NULL) {
+              return err("realloc taken args failed");
+            }
+            taken = newTak;
+          }
+          taken[takCount++] = i;
+        }
+      } else if (!intArrContains(taken, takCount, i) && !run) {
+        if (argCount == argCap) {
+          argCap *= 2;
+          char **newArg = (char **)realloc(args, sizeof(char *) * argCap);
+          if (newArg == NULL) {
+            for (int j = 0; j < argCount; j++) {
+              free(args[j]);
+            }
+            free(args);
+            free(taken);
+            return err("failed to realloc args");
+          }
+          args = newArg;
+        }
+        args[argCount++] = argv[i];
+        
+        if (takCount == takCap) {
+          takCap *= 2;
+          int *newTak = (int *)realloc(taken, sizeof(int) * takCap);
+          if (newTak == NULL) {
+            return err("realloc taken args failed");
+          }
+          taken = newTak;
+        }
+        taken[takCount++] = i;
+      }
+    }
+    for (int i = 0; i < argCount; i++) {
+      printf("%s\n", args[i]);
+      return 0;
+    }/**/for (int i = 0; i < argCount; i++) { free(args[i]); };free(args);free(taken);/**/
+    /*
+      if (run == false && !intArrContains(taken, M, i+1)) {
         run = true;
-        int lenTak = sizeof(taken) / sizeof(taken[0]);
-        taken[lenTak] = i;
+        taken[M] = i;
       };if (argv[i+1] != NULL) {
-        int lenTak = sizeof(taken) / sizeof(taken[0]);
-        taken[lenTak] = i;
+        taken[M] = i;
         file = argv[i+1];
       }
-    } else if (!intArrContains(taken, M, i+1)) {
-      int lenArgs = sizeof(args) / sizeof(args[0]);
-      if (lenArgs == 1 && args[0] == "gcc") {
-        lenArgs = 0;
-      }
-      args[lenArgs] = argv[i];
-    }
+    } else if (!intArrContains(taken, M, i) && run == false) {
+      int lenArgs = strArrLen(args);
+      taken[M] = i;
+      args[lenArgs+1] = argv[i];
+    }*/
   }
 
   if (run && file != NULL) {
@@ -144,22 +241,45 @@ int main(int argc, char *argv[]) {
     if (del(tmp) == 1) {
       return err("deleting tmp file");
     }
+  } else if (run) {
+    return err("not enough args; need file");
   } else {
-    int argsSize = sizeof(args) / sizeof(args[0]);
-
-    int totalCmdSize = 0;
-    for (int i = 0; i < argsSize; i++) {
-      totalCmdSize += sizeof(" ") + sizeof(args[i]);
-    }; totalCmdSize += sizeof('\0');
-
-    char cmd[totalCmdSize];
-    sprintf(cmd, "gcc");
-    for (int i = 0; i < argsSize; i++) {
-      sprintf(cmd, "%s %s", cmd, args[i]);
+    if (sizeof(args) == 0) {
+      return err("not enough args");
     }
 
+    int totalArgs = strArrLen(args)-1;
+
+    int avgSize = 0;
+    for (int i = 0; i < totalArgs; i++) {
+      printf("foo\n");
+      avgSize += sizeof(args[i]);
+    };avgSize = avgSize / totalArgs;
+
+    int argsSize = /*sizeof(args) /*/ avgSize;
+
+    int totalCmdSize = strlen("gcc");
+    for (int i = 0; i < totalArgs; i++) {
+      printf("%d\n", i);
+      totalCmdSize += strlen(args[i]);
+      printf("%d\n", i);
+    }
+
+    char cmd[totalCmdSize];
+    printf("%d\n", totalCmdSize);
+    sprintf(cmd, "gcc");
+    for (int i = 0; i < argsSize; i++) {
+      printf("%d:  \"%s\"  ;  \"\"\n", i, cmd); 
+      char tmp[sizeof(" ")+1] = " ";
+      printf("%d:  \"%s\"  ;  \"%s\"\n", i, cmd, tmp); 
+      sprintf(tmp, " %s", args[i]);
+      printf("%d:  \"%s\"  ;  \"%s\"\n", i, cmd, tmp);/* 
+      strcat(cmd, tmp);
+      printf("%d:  %s  ;  %s\n", i, cmd, tmp); */
+    } 
+
     return system(cmd);
-  } 
+  }
 
   return 0;
 }
