@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < argsSize; i++) {
       sprintf(cmd, "%s %s", cmd, args[i]);
     }
-    
+
     return system(cmd);
   } 
 
